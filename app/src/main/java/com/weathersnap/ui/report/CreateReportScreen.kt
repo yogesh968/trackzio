@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,133 +39,128 @@ fun CreateReportScreen(
     viewModel: CreateReportViewModel = hiltViewModel(),
     sharedViewModel: SharedWeatherViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val selectedWeather by sharedViewModel.selectedWeather.collectAsStateWithLifecycle()
+    val uiState          by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedWeather  by sharedViewModel.selectedWeather.collectAsStateWithLifecycle()
     val capturedImageFile by sharedViewModel.capturedImageFile.collectAsStateWithLifecycle()
 
-    LaunchedEffect(selectedWeather) { selectedWeather?.let { viewModel.initWithWeather(it) } }
-    LaunchedEffect(capturedImageFile) {
-        capturedImageFile?.let {
-            viewModel.onImageCaptured(it)
-            sharedViewModel.consumeCapturedImage()
-        }
+    LaunchedEffect(selectedWeather)    { selectedWeather?.let { viewModel.initWithWeather(it) } }
+    LaunchedEffect(capturedImageFile)  {
+        capturedImageFile?.let { viewModel.onImageCaptured(it); sharedViewModel.consumeCapturedImage() }
     }
-    LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) onNavigateToSavedReports() }
+    LaunchedEffect(uiState.isSaved)    { if (uiState.isSaved) onNavigateToSavedReports() }
     BackHandler { viewModel.discardDraft(); onBack() }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background)
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
         ) {
-            Spacer(Modifier.height(16.dp))
-
-            // Top bar
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // ── Top bar ─────────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(
                     onClick = { viewModel.discardDraft(); onBack() },
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(Surface2)
-                        .border(1.dp, Border, RoundedCornerShape(12.dp))
+                        .border(1.dp, Border, RoundedCornerShape(10.dp))
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back",
+                        tint = TextSecondary, modifier = Modifier.size(16.dp))
                 }
                 Spacer(Modifier.width(14.dp))
-                Text("Create Report", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+                Text("New Report", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
             }
 
-            Spacer(Modifier.height(28.dp))
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
 
-            uiState.weather?.let { snapshot ->
-                SectionLabel("Weather")
+                // ── Weather snapshot ─────────────────────────────
+                uiState.weather?.let { snapshot ->
+                    SectionLabel("Weather")
+                    Spacer(Modifier.height(10.dp))
+                    WeatherCard(snapshot = snapshot)
+                    Spacer(Modifier.height(24.dp))
+                }
+
+                // ── Photo ────────────────────────────────────────
+                SectionLabel("Photo")
                 Spacer(Modifier.height(10.dp))
-                WeatherCard(snapshot = snapshot)
-            }
+                AnimatedContent(
+                    targetState = uiState.imagePath,
+                    transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
+                    label = "image_preview"
+                ) { path ->
+                    if (path != null) {
+                        ImagePreviewCard(
+                            imagePath = path,
+                            originalSize = uiState.originalSizeBytes,
+                            compressedSize = uiState.compressedSizeBytes,
+                            onRetake = onNavigateToCamera
+                        )
+                    } else {
+                        CapturePhotoPlaceholder(onClick = onNavigateToCamera)
+                    }
+                }
 
-            Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(24.dp))
 
-            SectionLabel("Photo")
-            Spacer(Modifier.height(10.dp))
-
-            AnimatedContent(
-                targetState = uiState.imagePath,
-                transitionSpec = { fadeIn(tween(280)) togetherWith fadeOut(tween(180)) },
-                label = "image_preview"
-            ) { path ->
-                if (path != null) {
-                    ImagePreviewCard(
-                        imagePath = path,
-                        originalSize = uiState.originalSizeBytes,
-                        compressedSize = uiState.compressedSizeBytes,
-                        onRetake = onNavigateToCamera
+                // ── Notes ────────────────────────────────────────
+                SectionLabel("Notes")
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = uiState.notes,
+                    onValueChange = viewModel::onNotesChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text("Add notes about the weather...",
+                            color = TextTertiary, style = MaterialTheme.typography.bodyLarge)
+                    },
+                    minLines = 4,
+                    maxLines = 7,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor   = Surface1,
+                        unfocusedContainerColor = Surface1,
+                        focusedBorderColor      = BorderLight,
+                        unfocusedBorderColor    = Border,
+                        focusedTextColor        = TextPrimary,
+                        unfocusedTextColor      = TextPrimary,
+                        cursorColor             = Amber
                     )
-                } else {
-                    CapturePhotoPlaceholder(onClick = onNavigateToCamera)
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            SectionLabel("Notes")
-            Spacer(Modifier.height(10.dp))
-
-            OutlinedTextField(
-                value = uiState.notes,
-                onValueChange = viewModel::onNotesChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text("Add notes...", color = TextTertiary, style = MaterialTheme.typography.bodyLarge)
-                },
-                minLines = 4,
-                maxLines = 7,
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor   = Surface1,
-                    unfocusedContainerColor = Surface1,
-                    focusedBorderColor      = BorderLight,
-                    unfocusedBorderColor    = Border,
-                    focusedTextColor        = TextPrimary,
-                    unfocusedTextColor      = TextPrimary,
-                    cursorColor             = Amber
                 )
-            )
 
-            Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(28.dp))
 
-            Button(
-                onClick = viewModel::saveReport,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = uiState.weather != null && !uiState.isSaving,
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor         = Amber,
-                    contentColor           = Background,
-                    disabledContainerColor = Surface2,
-                    disabledContentColor   = TextTertiary
-                )
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Background)
-                } else {
-                    Text("Save Report", style = MaterialTheme.typography.labelLarge)
+                // ── Save button ──────────────────────────────────
+                Button(
+                    onClick = viewModel::saveReport,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    enabled = uiState.weather != null && !uiState.isSaving,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor         = Amber,
+                        contentColor           = Background,
+                        disabledContainerColor = Surface2,
+                        disabledContentColor   = TextTertiary
+                    )
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp, color = Background)
+                    } else {
+                        Text("Save Report", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
-            }
 
-            Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(36.dp))
+            }
         }
 
         uiState.error?.let { error ->
@@ -174,7 +168,9 @@ fun CreateReportScreen(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(20.dp).navigationBarsPadding(),
                 containerColor = Surface2,
                 contentColor = TextPrimary,
-                action = { TextButton(onClick = viewModel::clearError) { Text("Dismiss", color = Amber) } }
+                action = { TextButton(onClick = viewModel::clearError) {
+                    Text("Dismiss", color = Amber) }
+                }
             ) { Text(error) }
         }
     }
@@ -182,7 +178,7 @@ fun CreateReportScreen(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+    Text(text, style = MaterialTheme.typography.labelLarge, color = TextSecondary)
 }
 
 @Composable
@@ -192,13 +188,12 @@ private fun ImagePreviewCard(
     compressedSize: Long,
     onRetake: () -> Unit
 ) {
-    val shape = RoundedCornerShape(14.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
+            .clip(RoundedCornerShape(16.dp))
             .background(Surface1)
-            .border(1.dp, Border, shape)
+            .border(1.dp, Border, RoundedCornerShape(16.dp))
     ) {
         AsyncImage(
             model = File(imagePath),
@@ -206,7 +201,7 @@ private fun ImagePreviewCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
             contentScale = ContentScale.Crop
         )
         Row(
@@ -215,11 +210,8 @@ private fun ImagePreviewCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    "${originalSize.toReadableSize()} → ${compressedSize.toReadableSize()}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondary
-                )
+                Text("${originalSize.toReadableSize()} → ${compressedSize.toReadableSize()}",
+                    style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                 Text("Compressed", style = MaterialTheme.typography.labelSmall, color = TextTertiary)
             }
             TextButton(onClick = onRetake) {
@@ -231,14 +223,13 @@ private fun ImagePreviewCard(
 
 @Composable
 private fun CapturePhotoPlaceholder(onClick: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp)
-            .clip(shape)
+            .height(150.dp)
+            .clip(RoundedCornerShape(16.dp))
             .background(Surface1)
-            .border(1.dp, Border, shape)
+            .border(1.dp, Border, RoundedCornerShape(16.dp))
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -247,14 +238,20 @@ private fun CapturePhotoPlaceholder(onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Default.CameraAlt,
-                contentDescription = null,
-                tint = TextTertiary,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(Modifier.height(10.dp))
-            Text("Add a photo", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Surface3),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.CameraAlt, contentDescription = null,
+                    tint = TextSecondary, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("Add a photo", style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(3.dp))
             Text("Optional", style = MaterialTheme.typography.labelSmall, color = TextTertiary)
         }
     }

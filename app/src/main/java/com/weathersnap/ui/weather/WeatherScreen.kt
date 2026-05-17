@@ -45,77 +45,49 @@ fun WeatherScreen(
     viewModel: WeatherViewModel = hiltViewModel(),
     sharedViewModel: SharedWeatherViewModel
 ) {
-    val weatherState   by viewModel.weatherState.collectAsStateWithLifecycle()
+    val weatherState    by viewModel.weatherState.collectAsStateWithLifecycle()
     val suggestionState by viewModel.suggestionState.collectAsStateWithLifecycle()
-    val reportCount    by viewModel.reportCount.collectAsStateWithLifecycle()
-    val focusManager   = LocalFocusManager.current
+    val reportCount     by viewModel.reportCount.collectAsStateWithLifecycle()
+    val focusManager    = LocalFocusManager.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
             .statusBarsPadding()
-            .padding(horizontal = 20.dp)
     ) {
-        Spacer(Modifier.height(24.dp))
-
-        // ── Header ───────────────────────────────────────────────
+        // ── Top bar ──────────────────────────────────────────────
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("WeatherSnap", style = MaterialTheme.typography.headlineLarge, color = TextPrimary)
+            Text(
+                "WeatherSnap",
+                style = MaterialTheme.typography.headlineLarge,
+                color = TextPrimary
+            )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Refresh — only visible when weather is loaded
                 if (weatherState is WeatherUiState.Success) {
-                    IconButton(
-                        onClick = viewModel::refresh,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Surface2)
-                            .border(1.dp, Border, RoundedCornerShape(12.dp))
-                    ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(18.dp)
-                        )
+                    TopBarButton(onClick = viewModel::refresh) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh",
+                            tint = TextSecondary, modifier = Modifier.size(17.dp))
                     }
                 }
-
-                // Reports badge button
-                Box(
-                    modifier = Modifier
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Surface2)
-                        .border(1.dp, Border, RoundedCornerShape(12.dp))
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() },
-                            onClick = onNavigateToSavedReports
-                        )
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                TopBarButton(onClick = onNavigateToSavedReports) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.List,
-                            contentDescription = "Reports",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Reports",
+                            tint = TextSecondary, modifier = Modifier.size(17.dp))
                         if (reportCount > 0) {
                             Text(
                                 "$reportCount",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                style = MaterialTheme.typography.labelLarge,
                                 color = Amber
                             )
                         }
@@ -124,10 +96,9 @@ fun WeatherScreen(
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-
         // ── Search ───────────────────────────────────────────────
         SearchSection(
+            modifier = Modifier.padding(horizontal = 20.dp),
             suggestionState = suggestionState,
             onQueryChange = viewModel::onQueryChange,
             onCitySelected = { city ->
@@ -137,12 +108,10 @@ fun WeatherScreen(
             onDismiss = viewModel::dismissSuggestions
         )
 
-        Spacer(Modifier.height(24.dp))
-
         // ── Content ──────────────────────────────────────────────
         AnimatedContent(
             targetState = weatherState,
-            transitionSpec = { fadeIn(tween(350)) togetherWith fadeOut(tween(200)) },
+            transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(180)) },
             label = "weather_content"
         ) { state ->
             when (state) {
@@ -162,17 +131,38 @@ fun WeatherScreen(
     }
 }
 
-// ── Search section ────────────────────────────────────────────────
+@Composable
+private fun TopBarButton(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Surface2)
+            .border(1.dp, Border, RoundedCornerShape(10.dp))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick
+            )
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
+    }
+}
 
 @Composable
 private fun SearchSection(
+    modifier: Modifier = Modifier,
     suggestionState: SuggestionState,
     onQueryChange: (String) -> Unit,
     onCitySelected: (City) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val shape = RoundedCornerShape(14.dp)
-    Column {
+    Column(modifier = modifier) {
         OutlinedTextField(
             value = suggestionState.query,
             onValueChange = onQueryChange,
@@ -183,27 +173,29 @@ private fun SearchSection(
                 Text("Search city...", color = TextTertiary, style = MaterialTheme.typography.bodyLarge)
             },
             leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = null, tint = TextTertiary, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Search, contentDescription = null,
+                    tint = TextTertiary, modifier = Modifier.size(18.dp))
             },
             trailingIcon = {
                 when {
                     suggestionState.isLoading -> CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Amber
-                    )
+                        modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Amber)
                     suggestionState.query.isNotEmpty() -> IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = TextTertiary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Clear, contentDescription = "Clear",
+                            tint = TextTertiary, modifier = Modifier.size(16.dp))
                     }
                 }
             },
             supportingText = {
                 if (suggestionState.query.length in 1..2) {
-                    Text("Type at least 3 characters", style = MaterialTheme.typography.labelSmall, color = TextTertiary)
+                    Text("Type at least 3 characters",
+                        style = MaterialTheme.typography.labelSmall, color = TextTertiary)
                 }
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { onDismiss() }),
-            shape = shape,
+            shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor   = Surface1,
                 unfocusedContainerColor = Surface1,
@@ -217,8 +209,8 @@ private fun SearchSection(
 
         AnimatedVisibility(
             visible = suggestionState.isExpanded && suggestionState.suggestions.isNotEmpty(),
-            enter = expandVertically(tween(180)) + fadeIn(tween(180)),
-            exit  = shrinkVertically(tween(140)) + fadeOut(tween(140))
+            enter = expandVertically(tween(160)) + fadeIn(tween(160)),
+            exit  = shrinkVertically(tween(120)) + fadeOut(tween(120))
         ) {
             val dropShape = RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
             Column(
@@ -234,18 +226,18 @@ private fun SearchSection(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onCitySelected(city) }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                                .padding(horizontal = 16.dp, vertical = 15.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextTertiary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.LocationOn, contentDescription = null,
+                                tint = TextTertiary, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(
-                                    city.name,
+                                Text(city.name,
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                    color = TextPrimary
-                                )
-                                Text(city.displayName, style = MaterialTheme.typography.labelSmall, color = TextTertiary)
+                                    color = TextPrimary)
+                                Text(city.displayName,
+                                    style = MaterialTheme.typography.labelSmall, color = TextTertiary)
                             }
                         }
                         HorizontalDivider(color = Border, thickness = 1.dp)
@@ -256,12 +248,13 @@ private fun SearchSection(
     }
 }
 
-// ── Idle state ────────────────────────────────────────────────────
-
 @Composable
 private fun IdleState(reportCount: Int) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(top = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -269,11 +262,8 @@ private fun IdleState(reportCount: Int) {
             style = MaterialTheme.typography.bodyLarge,
             color = TextTertiary
         )
-
         if (reportCount > 0) {
-            Spacer(Modifier.height(32.dp))
-            HorizontalDivider(color = Border)
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(40.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -283,33 +273,28 @@ private fun IdleState(reportCount: Int) {
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.List,
-                    contentDescription = null,
-                    tint = Amber,
-                    modifier = Modifier.size(18.dp)
-                )
+                Icon(Icons.AutoMirrored.Filled.List, contentDescription = null,
+                    tint = Amber, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(12.dp))
                 Text(
                     "$reportCount saved ${if (reportCount == 1) "report" else "reports"}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary
+                    color = TextSecondary
                 )
             }
         }
     }
 }
 
-// ── Loading state ─────────────────────────────────────────────────
-
 @Composable
 private fun LoadingState() {
-    Box(modifier = Modifier.fillMaxWidth().padding(top = 60.dp), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = Amber, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(top = 80.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(color = Amber, strokeWidth = 2.dp, modifier = Modifier.size(26.dp))
     }
 }
-
-// ── Success state ─────────────────────────────────────────────────
 
 @Composable
 private fun SuccessState(
@@ -317,89 +302,94 @@ private fun SuccessState(
     onCreateReport: () -> Unit,
     onViewReports: () -> Unit
 ) {
-    // Derived values — all from existing snapshot fields, no new API calls
-    val feelsLike   = WeatherConditionMapper.feelsLike(snapshot.temperature, snapshot.humidity)
-    val visibility  = WeatherConditionMapper.visibility(snapshot.weatherCode)
-    val windDesc    = WeatherConditionMapper.windDescription(snapshot.windSpeed)
-    val suggestion  = WeatherConditionMapper.suggestion(snapshot.temperature, snapshot.weatherCode)
-
-    // Comfort index 0–100: lower humidity + moderate temp = more comfortable
+    val feelsLike    = WeatherConditionMapper.feelsLike(snapshot.temperature, snapshot.humidity)
+    val visibility   = WeatherConditionMapper.visibility(snapshot.weatherCode)
+    val windDesc     = WeatherConditionMapper.windDescription(snapshot.windSpeed)
+    val suggestion   = WeatherConditionMapper.suggestion(snapshot.temperature, snapshot.weatherCode)
+    val uv           = uvRisk(snapshot.weatherCode, snapshot.temperature)
     val comfortScore = run {
-        val tempScore    = (1.0 - (Math.abs(snapshot.temperature - 22.0) / 30.0).coerceIn(0.0, 1.0)) * 50.0
-        val humidScore   = (1.0 - ((snapshot.humidity - 40).coerceAtLeast(0) / 60.0).coerceIn(0.0, 1.0)) * 50.0
-        (tempScore + humidScore).roundToInt().coerceIn(0, 100)
+        val t = (1.0 - (Math.abs(snapshot.temperature - 22.0) / 30.0).coerceIn(0.0, 1.0)) * 50.0
+        val h = (1.0 - ((snapshot.humidity - 40).coerceAtLeast(0) / 60.0).coerceIn(0.0, 1.0)) * 50.0
+        (t + h).roundToInt().coerceIn(0, 100)
     }
 
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(bottom = 32.dp)
+        contentPadding = PaddingValues(
+            start = 20.dp, end = 20.dp, top = 20.dp, bottom = 40.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Main weather card
         item { WeatherCard(snapshot = snapshot) }
 
-        // Feels like + visibility row
+        // 2-column tile row: feels like + visibility
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                InfoTile(
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                StatTile(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Thermostat,
-                    label = "Feels like",
-                    value = "${"%.0f".format(feelsLike)}°C"
+                    iconTint = Color(0xFF64B5F6),
+                    value = "${"%.0f".format(feelsLike)}°",
+                    label = "Feels like"
                 )
-                InfoTile(
+                StatTile(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Visibility,
-                    label = "Visibility",
-                    value = visibility
+                    iconTint = Color(0xFF81C784),
+                    value = visibility,
+                    label = "Visibility"
                 )
             }
         }
 
-        // Wind + UV row
+        // 2-column tile row: wind + UV
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                InfoTile(
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                StatTile(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Air,
-                    label = "Wind",
-                    value = windDesc
+                    iconTint = Color(0xFF90CAF9),
+                    value = windDesc,
+                    label = "Wind"
                 )
-                InfoTile(
+                StatTile(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.WbSunny,
-                    label = "UV Risk",
-                    value = uvRisk(snapshot.weatherCode, snapshot.temperature)
+                    iconTint = Color(0xFFFFD54F),
+                    value = uv,
+                    label = "UV Risk"
                 )
             }
         }
 
-        // Comfort index
-        item { ComfortIndexCard(score = comfortScore) }
+        // Comfort index — full width
+        item { ComfortTile(score = comfortScore) }
 
-        // Suggestion banner
-        item { SuggestionBanner(text = suggestion) }
+        // Suggestion — full width
+        item { SuggestionTile(text = suggestion) }
 
-        // Action buttons
+        // Spacer between info and actions
+        item { Spacer(Modifier.height(4.dp)) }
+
+        // Primary action
         item {
             Button(
                 onClick = onCreateReport,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Background)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Amber,
+                    contentColor   = Background
+                )
             ) {
                 Text("Create Report", style = MaterialTheme.typography.labelLarge)
             }
         }
+
+        // Secondary action
         item {
             OutlinedButton(
                 onClick = onViewReports,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary)
@@ -410,83 +400,91 @@ private fun SuccessState(
     }
 }
 
-// ── Reusable tiles ────────────────────────────────────────────────
+// ── Tiles ─────────────────────────────────────────────────────────
 
 @Composable
-private fun InfoTile(
+private fun StatTile(
     modifier: Modifier,
     icon: ImageVector,
-    label: String,
-    value: String
+    iconTint: Color,
+    value: String,
+    label: String
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(Surface1)
-            .border(1.dp, Border, RoundedCornerShape(14.dp))
+            .border(1.dp, Border, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
-        Icon(icon, contentDescription = null, tint = TextTertiary, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.height(10.dp))
-        Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
-        Spacer(Modifier.height(2.dp))
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(iconTint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null,
+                tint = iconTint, modifier = Modifier.size(16.dp))
+        }
+        Spacer(Modifier.height(14.dp))
+        Text(value,
+            style = MaterialTheme.typography.titleLarge,
+            color = TextPrimary,
+            maxLines = 1
+        )
+        Spacer(Modifier.height(3.dp))
         Text(label, style = MaterialTheme.typography.labelSmall, color = TextTertiary)
     }
 }
 
 @Composable
-private fun ComfortIndexCard(score: Int) {
-    val color = when {
-        score >= 70 -> Color(0xFF4CAF50)
-        score >= 40 -> Amber
-        else        -> ErrorColor
-    }
-    val label = when {
-        score >= 70 -> "Comfortable"
-        score >= 40 -> "Moderate"
-        else        -> "Uncomfortable"
+private fun ComfortTile(score: Int) {
+    val (barColor, statusText) = when {
+        score >= 70 -> GreenColor  to "Comfortable"
+        score >= 40 -> Amber       to "Moderate"
+        else        -> ErrorColor  to "Uncomfortable"
     }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(Surface1)
-            .border(1.dp, Border, RoundedCornerShape(14.dp))
-            .padding(16.dp)
+            .border(1.dp, Border, RoundedCornerShape(16.dp))
+            .padding(18.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Comfort Index", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Text("Comfort", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
             Text(
-                label,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = color
+                statusText,
+                style = MaterialTheme.typography.labelLarge,
+                color = barColor
             )
         }
-        Spacer(Modifier.height(12.dp))
-        // Track
+        Spacer(Modifier.height(16.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
                 .background(Surface3)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(score / 100f)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(color)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(barColor)
             )
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
-            "$score / 100",
+            "$score out of 100",
             style = MaterialTheme.typography.labelSmall,
             color = TextTertiary
         )
@@ -494,47 +492,42 @@ private fun ComfortIndexCard(score: Int) {
 }
 
 @Composable
-private fun SuggestionBanner(text: String) {
+private fun SuggestionTile(text: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(AmberDim)
-            .border(1.dp, AmberBorder, RoundedCornerShape(14.dp))
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .border(1.dp, AmberBorder, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Icon(
-            Icons.Default.Lightbulb,
-            contentDescription = null,
-            tint = Amber,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(Modifier.width(10.dp))
+        Icon(Icons.Default.Lightbulb, contentDescription = null,
+            tint = Amber, modifier = Modifier.size(16.dp).padding(top = 1.dp))
+        Spacer(Modifier.width(12.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
     }
 }
-
-// ── Error state ───────────────────────────────────────────────────
 
 @Composable
 private fun ErrorState(message: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(top = 20.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(ErrorDim)
-            .border(1.dp, ErrorColor.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+            .border(1.dp, ErrorColor.copy(alpha = 0.2f), RoundedCornerShape(14.dp))
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(Icons.Default.Warning, contentDescription = null, tint = ErrorColor, modifier = Modifier.size(16.dp))
+        Icon(Icons.Default.Warning, contentDescription = null,
+            tint = ErrorColor, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(10.dp))
         Text(message, style = MaterialTheme.typography.bodyMedium, color = ErrorColor)
     }
 }
-
-// ── Helpers ───────────────────────────────────────────────────────
 
 private fun uvRisk(code: Int, temp: Double): String = when {
     code in listOf(95, 96, 99, 61, 63, 65, 80, 81, 82, 71, 73, 75, 45, 48) -> "Low"

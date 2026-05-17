@@ -11,11 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,34 +34,32 @@ fun SavedReportsScreen(
     onBack: () -> Unit,
     viewModel: SavedReportsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState     by viewModel.uiState.collectAsStateWithLifecycle()
     var showConfirm by remember { mutableStateOf(false) }
 
     if (showConfirm) {
         AlertDialog(
             onDismissRequest = { showConfirm = false },
             containerColor = Surface2,
+            shape = RoundedCornerShape(20.dp),
             title = {
-                Text("Clear all reports?", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                Text("Clear all reports?",
+                    style = MaterialTheme.typography.titleLarge, color = TextPrimary)
             },
             text = {
-                Text(
-                    "This will permanently delete all saved reports. This cannot be undone.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
-                )
+                Text("This will permanently delete all saved reports.",
+                    style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
             },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteAll()
-                    showConfirm = false
-                }) {
-                    Text("Delete All", color = ErrorColor, style = MaterialTheme.typography.labelLarge)
+                TextButton(onClick = { viewModel.deleteAll(); showConfirm = false }) {
+                    Text("Delete All", color = ErrorColor,
+                        style = MaterialTheme.typography.labelLarge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirm = false }) {
-                    Text("Cancel", color = TextSecondary, style = MaterialTheme.typography.labelLarge)
+                    Text("Cancel", color = TextSecondary,
+                        style = MaterialTheme.typography.labelLarge)
                 }
             }
         )
@@ -87,22 +81,17 @@ fun SavedReportsScreen(
             IconButton(
                 onClick = onBack,
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(Surface2)
-                    .border(1.dp, Border, RoundedCornerShape(12.dp))
+                    .border(1.dp, Border, RoundedCornerShape(10.dp))
             ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
-                )
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back",
+                    tint = TextSecondary, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(14.dp))
-            Text("Saved Reports", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+            Text("Reports", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
             Spacer(Modifier.weight(1f))
-            // Clear all button — only shown when there are reports
             if (uiState is SavedReportsUiState.Success) {
                 TextButton(onClick = { showConfirm = true }) {
                     Text("Clear All", style = MaterialTheme.typography.labelLarge, color = ErrorColor)
@@ -112,38 +101,37 @@ fun SavedReportsScreen(
 
         AnimatedContent(
             targetState = uiState,
-            transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
+            transitionSpec = { fadeIn(tween(280)) togetherWith fadeOut(tween(180)) },
             label = "reports_content"
         ) { state ->
             when (state) {
                 is SavedReportsUiState.Loading -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Amber, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
+                    CircularProgressIndicator(color = Amber, strokeWidth = 2.dp,
+                        modifier = Modifier.size(26.dp))
                 }
 
                 is SavedReportsUiState.Empty -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No reports yet", style = MaterialTheme.typography.titleMedium, color = TextSecondary)
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Create one from the weather screen",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextTertiary
-                        )
+                        Text("No reports yet",
+                            style = MaterialTheme.typography.headlineMedium, color = TextSecondary)
+                        Spacer(Modifier.height(8.dp))
+                        Text("Create one from the weather screen",
+                            style = MaterialTheme.typography.bodyMedium, color = TextTertiary)
                     }
                 }
 
                 is SavedReportsUiState.Success -> LazyColumn(
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                    contentPadding = PaddingValues(
+                        start = 20.dp, end = 20.dp, top = 4.dp, bottom = 40.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     itemsIndexed(state.reports, key = { _, r -> r.id }) { _, report ->
-                        ReportCard(report = report)
+                        ReportCard(report)
                     }
                     item { Spacer(Modifier.navigationBarsPadding()) }
                 }
@@ -154,13 +142,12 @@ fun SavedReportsScreen(
 
 @Composable
 private fun ReportCard(report: WeatherReport) {
-    val shape = RoundedCornerShape(18.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
+            .clip(RoundedCornerShape(20.dp))
             .background(Surface1)
-            .border(1.dp, Border, shape)
+            .border(1.dp, Border, RoundedCornerShape(20.dp))
     ) {
         // Photo
         report.imagePath?.let { path ->
@@ -169,83 +156,109 @@ private fun ReportCard(report: WeatherReport) {
                 contentDescription = "Report photo",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(190.dp)
-                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
                 contentScale = ContentScale.Crop
             )
         }
 
-        Column(modifier = Modifier.padding(18.dp)) {
-            // City + temp
+        Column(modifier = Modifier.padding(20.dp)) {
+
+            // City row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    WeatherConditionMapper.toEmoji(report.weather.weatherCode),
-                    fontSize = 28.sp
-                )
-                Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         report.weather.cityName,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.titleLarge,
                         color = TextPrimary
                     )
-                    Text(report.weather.condition, style = MaterialTheme.typography.labelSmall, color = TextTertiary)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        report.weather.condition,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
                 }
-                Text(
-                    "${"%.0f".format(report.weather.temperature)}°",
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-1).sp,
-                    color = TextPrimary
-                )
+                // Temperature + emoji
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        "${"%.0f".format(report.weather.temperature)}°",
+                        fontSize = 42.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-1.5).sp,
+                        color = TextPrimary,
+                        lineHeight = 42.sp
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        WeatherConditionMapper.toEmoji(report.weather.weatherCode),
+                        fontSize = 28.sp,
+                        lineHeight = 28.sp,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
             }
 
+            Spacer(Modifier.height(20.dp))
+            HorizontalDivider(color = Border)
             Spacer(Modifier.height(16.dp))
-            HorizontalDivider(color = Border, thickness = 1.dp)
-            Spacer(Modifier.height(14.dp))
 
             // Metrics
             Row(modifier = Modifier.fillMaxWidth()) {
-                MetricCell(modifier = Modifier.weight(1f), value = "${report.weather.humidity}%", label = "Humidity")
-                MetricCell(modifier = Modifier.weight(1f), value = "${"%.0f".format(report.weather.windSpeed)} km/h", label = "Wind")
-                MetricCell(modifier = Modifier.weight(1f), value = "${"%.0f".format(report.weather.pressure)}", label = "hPa")
+                ReportMetric(Modifier.weight(1f),
+                    "${"%.0f".format(report.weather.windSpeed)}", "km/h", "Wind")
+                ReportMetric(Modifier.weight(1f),
+                    "${report.weather.humidity}", "%", "Humidity")
+                ReportMetric(Modifier.weight(1f),
+                    "${"%.0f".format(report.weather.pressure)}", "hPa", "Pressure")
             }
 
             // Notes
             if (report.notes.isNotBlank()) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = Border)
                 Spacer(Modifier.height(14.dp))
-                HorizontalDivider(color = Border, thickness = 1.dp)
-                Spacer(Modifier.height(12.dp))
-                Text(report.notes, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                Text(report.notes,
+                    style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
             }
 
-            // Compression
-            if (report.originalSizeBytes > 0) {
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "${report.originalSizeBytes.toReadableSize()} → ${report.compressedSizeBytes.toReadableSize()}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextTertiary
-                )
-            }
+            Spacer(Modifier.height(14.dp))
 
-            Spacer(Modifier.height(10.dp))
-            Text(
-                report.timestamp.toFormattedDate(),
-                style = MaterialTheme.typography.labelSmall,
-                color = TextTertiary
-            )
+            // Footer row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(report.timestamp.toFormattedDate(),
+                    style = MaterialTheme.typography.labelSmall, color = TextTertiary)
+                if (report.originalSizeBytes > 0) {
+                    Text(
+                        "${report.originalSizeBytes.toReadableSize()} → ${report.compressedSizeBytes.toReadableSize()}",
+                        style = MaterialTheme.typography.labelSmall, color = TextTertiary
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun MetricCell(modifier: Modifier, value: String, label: String) {
+private fun ReportMetric(modifier: Modifier, value: String, unit: String, label: String) {
     Column(modifier = modifier) {
-        Text(value, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(value,
+                style = MaterialTheme.typography.headlineMedium,
+                color = TextPrimary)
+            Spacer(Modifier.width(3.dp))
+            Text(unit,
+                style = MaterialTheme.typography.labelMedium,
+                color = TextSecondary,
+                modifier = Modifier.padding(bottom = 2.dp))
+        }
         Text(label, style = MaterialTheme.typography.labelSmall, color = TextTertiary)
     }
 }

@@ -18,89 +18,80 @@ import com.weathersnap.utils.WeatherConditionMapper
 
 @Composable
 fun WeatherCard(snapshot: WeatherSnapshot, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(20.dp)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
+            .clip(RoundedCornerShape(24.dp))
             .background(Surface2)
-            .border(1.dp, Border, shape)
-            .padding(24.dp)
+            .border(1.dp, Border, RoundedCornerShape(24.dp))
+            .padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 24.dp)
     ) {
-        // Location
+        // City name
         Text(
             snapshot.cityName,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleMedium,
             color = TextSecondary
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
 
-        // Temperature + emoji side by side
+        // Giant temperature + emoji on same baseline
         Row(
             verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    "${"%.0f".format(snapshot.temperature)}°",
-                    fontSize = 64.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-2).sp,
-                    color = TextPrimary,
-                    lineHeight = 64.sp
-                )
-                Spacer(Modifier.width(12.dp))
+            Text(
+                "${"%.0f".format(snapshot.temperature)}°",
+                style = MaterialTheme.typography.displayLarge,
+                color = TextPrimary
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.padding(bottom = 14.dp)) {
                 Text(
                     WeatherConditionMapper.toEmoji(snapshot.weatherCode),
-                    fontSize = 36.sp,
-                    lineHeight = 36.sp,
-                    modifier = Modifier.padding(bottom = 6.dp)
+                    fontSize = 40.sp,
+                    lineHeight = 40.sp
                 )
             }
         }
 
-        Spacer(Modifier.height(4.dp))
-
+        // Condition
         Text(
             snapshot.condition,
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary
         )
 
-        Spacer(Modifier.height(24.dp))
-
-        HorizontalDivider(color = Border, thickness = 1.dp)
-
+        Spacer(Modifier.height(28.dp))
+        HorizontalDivider(color = Border)
         Spacer(Modifier.height(20.dp))
 
-        // Metrics
+        // Three metrics
         Row(modifier = Modifier.fillMaxWidth()) {
-            MetricItem(
-                modifier = Modifier.weight(1f),
-                label = "Humidity",
-                value = "${snapshot.humidity}%"
-            )
-            MetricItem(
-                modifier = Modifier.weight(1f),
-                label = "Wind",
-                value = "${"%.0f".format(snapshot.windSpeed)} km/h"
-            )
-            MetricItem(
-                modifier = Modifier.weight(1f),
-                label = "Pressure",
-                value = "${"%.0f".format(snapshot.pressure)} hPa"
-            )
+            CardMetric(Modifier.weight(1f), "${"%.0f".format(snapshot.windSpeed)}", "km/h", "Wind")
+            CardMetric(Modifier.weight(1f), "${snapshot.humidity}", "%", "Humidity")
+            CardMetric(Modifier.weight(1f), "${"%.0f".format(snapshot.pressure)}", "hPa", "Pressure")
         }
     }
 }
 
 @Composable
-private fun MetricItem(modifier: Modifier, label: String, value: String) {
+private fun CardMetric(modifier: Modifier, value: String, unit: String, label: String) {
     Column(modifier = modifier) {
-        Text(value, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-        Spacer(Modifier.height(2.dp))
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineMedium,
+                color = TextPrimary
+            )
+            Spacer(Modifier.width(3.dp))
+            Text(
+                unit,
+                style = MaterialTheme.typography.labelMedium,
+                color = TextSecondary,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+        }
         Text(label, style = MaterialTheme.typography.labelSmall, color = TextTertiary)
     }
 }
