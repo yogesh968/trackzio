@@ -19,10 +19,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -64,11 +67,15 @@ fun WeatherScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "WeatherSnap",
-                style = MaterialTheme.typography.headlineLarge,
-                color = TextPrimary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                EarthIcon(size = 32.dp)
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "WeatherSnap",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = TextPrimary
+                )
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (weatherState is WeatherUiState.Success) {
@@ -526,6 +533,63 @@ private fun ErrorState(message: String) {
             tint = ErrorColor, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(10.dp))
         Text(message, style = MaterialTheme.typography.bodyMedium, color = ErrorColor)
+    }
+}
+
+// ── Earth icon ───────────────────────────────────────────────────
+
+@Composable
+private fun EarthIcon(size: Dp) {
+    val ocean  = Color(0xFF1E6FA8)
+    val land   = Color(0xFF2E8B57)
+    val border = Color(0xFF3A3A48)
+
+    Canvas(modifier = Modifier.size(size)) {
+        val r = this.size.minDimension / 2f
+        val cx = this.size.width / 2f
+        val cy = this.size.height / 2f
+
+        // Ocean base
+        drawCircle(color = ocean, radius = r, center = androidx.compose.ui.geometry.Offset(cx, cy))
+
+        // Continent blobs (simplified)
+        // Americas
+        drawOval(
+            color = land,
+            topLeft = androidx.compose.ui.geometry.Offset(cx - r * 0.72f, cy - r * 0.55f),
+            size = androidx.compose.ui.geometry.Size(r * 0.38f, r * 1.1f)
+        )
+        // Europe/Africa
+        drawOval(
+            color = land,
+            topLeft = androidx.compose.ui.geometry.Offset(cx - r * 0.1f, cy - r * 0.6f),
+            size = androidx.compose.ui.geometry.Size(r * 0.32f, r * 0.5f)
+        )
+        drawOval(
+            color = land,
+            topLeft = androidx.compose.ui.geometry.Offset(cx - r * 0.05f, cy - r * 0.05f),
+            size = androidx.compose.ui.geometry.Size(r * 0.38f, r * 0.7f)
+        )
+        // Asia
+        drawOval(
+            color = land,
+            topLeft = androidx.compose.ui.geometry.Offset(cx + r * 0.18f, cy - r * 0.65f),
+            size = androidx.compose.ui.geometry.Size(r * 0.6f, r * 0.55f)
+        )
+        // Australia
+        drawOval(
+            color = land,
+            topLeft = androidx.compose.ui.geometry.Offset(cx + r * 0.35f, cy + r * 0.2f),
+            size = androidx.compose.ui.geometry.Size(r * 0.3f, r * 0.25f)
+        )
+
+        // Outline
+        drawCircle(
+            color = border,
+            radius = r,
+            center = androidx.compose.ui.geometry.Offset(cx, cy),
+            style = Stroke(width = 1.5f)
+        )
     }
 }
 
