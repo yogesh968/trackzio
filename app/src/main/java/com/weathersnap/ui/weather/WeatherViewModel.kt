@@ -53,7 +53,11 @@ class WeatherViewModel @Inject constructor(
     fun onQueryChange(query: String) {
         _suggestionState.update { it.copy(query = query, isExpanded = query.length > 2) }
         queryFlow.value = query
-        if (query.length <= 2) {
+        if (query.isEmpty()) {
+            lastCity = null
+            _weatherState.value = WeatherUiState.Idle
+            _suggestionState.update { it.copy(suggestions = emptyList(), isExpanded = false) }
+        } else if (query.length <= 2) {
             _suggestionState.update { it.copy(suggestions = emptyList(), isExpanded = false) }
         }
     }

@@ -48,4 +48,8 @@ class ReportRepository @Inject constructor(
     suspend fun clearDraft() = withContext(Dispatchers.IO) {
         draftDao.clearDraft()
     }
+
+    suspend fun deleteAllReports() = withContext(Dispatchers.IO) {
+        reportDao.deleteAllReports()
+    }
 }

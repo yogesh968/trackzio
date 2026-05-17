@@ -13,6 +13,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +39,37 @@ fun SavedReportsScreen(
     viewModel: SavedReportsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showConfirm by remember { mutableStateOf(false) }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            containerColor = Surface2,
+            title = {
+                Text("Clear all reports?", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+            },
+            text = {
+                Text(
+                    "This will permanently delete all saved reports. This cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteAll()
+                    showConfirm = false
+                }) {
+                    Text("Delete All", color = ErrorColor, style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) {
+                    Text("Cancel", color = TextSecondary, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -67,6 +101,13 @@ fun SavedReportsScreen(
             }
             Spacer(Modifier.width(14.dp))
             Text("Saved Reports", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+            Spacer(Modifier.weight(1f))
+            // Clear all button — only shown when there are reports
+            if (uiState is SavedReportsUiState.Success) {
+                TextButton(onClick = { showConfirm = true }) {
+                    Text("Clear All", style = MaterialTheme.typography.labelLarge, color = ErrorColor)
+                }
+            }
         }
 
         AnimatedContent(

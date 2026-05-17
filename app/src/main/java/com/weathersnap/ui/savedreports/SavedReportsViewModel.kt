@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class SavedReportsUiState {
@@ -18,7 +19,7 @@ sealed class SavedReportsUiState {
 
 @HiltViewModel
 class SavedReportsViewModel @Inject constructor(
-    reportRepository: ReportRepository
+    private val reportRepository: ReportRepository
 ) : ViewModel() {
 
     val uiState = reportRepository.getAllReports()
@@ -31,4 +32,8 @@ class SavedReportsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = SavedReportsUiState.Loading
         )
+
+    fun deleteAll() {
+        viewModelScope.launch { reportRepository.deleteAllReports() }
+    }
 }
